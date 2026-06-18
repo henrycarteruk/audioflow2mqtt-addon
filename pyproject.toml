@@ -1,3 +1,22 @@
+[project]
+name = "audioflow2mqtt"
+version = "0.8.0"
+description = "Home Assistant add-on bridging Audioflow speaker switches to MQTT"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.28.1",
+    "aiomqtt>=2.5.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[tool.uv]
+# Run as an application via `python -m audioflow2mqtt`; not built/installed as a wheel.
+package = false
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]

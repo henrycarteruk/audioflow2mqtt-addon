@@ -12,6 +12,7 @@ discovery:
 services:
 - mqtt:need
 hassio_api: true
+host_network: true
 url: https://github.com/henrycarteruk/audioflow2mqtt-addon
 
 options:

@@ -6,7 +6,6 @@ init: false
 arch:
 - amd64
 - aarch64
-- armhf
 - armv7
 discovery:
 - mqtt

@@ -1,18 +1,16 @@
 """Pure builders for Home Assistant MQTT discovery payloads.
 
 Produces the retained `homeassistant/.../config` messages that make entities
-appear automatically in Home Assistant. No I/O: the async MQTT layer serializes
-each payload and publishes it.
+appear automatically in Home Assistant. Payloads are serialized to JSON here and
+returned as PublishMessage, so every discovery publish crosses the transport
+seam as the same type as any other publish. No I/O.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
-class DiscoveryMessage:
-    topic: str
-    payload: dict
+from .mqtt import PublishMessage
 
 
 @dataclass(frozen=True)
@@ -31,7 +29,7 @@ class DiscoveryDevice:
     zones: list[DiscoveryZone]
 
 
-def build_device_discovery(base_topic: str, device: DiscoveryDevice) -> list[DiscoveryMessage]:
+def build_device_discovery(base_topic: str, device: DiscoveryDevice) -> list[PublishMessage]:
     common = {
         "availability": [
             {"topic": f"{base_topic}/status"},
@@ -46,13 +44,13 @@ def build_device_discovery(base_topic: str, device: DiscoveryDevice) -> list[Dis
         },
         "platform": "mqtt",
     }
-    messages: list[DiscoveryMessage] = []
+    messages: list[PublishMessage] = []
     for zone in device.zones:
         x = zone.number
         suffix = "" if zone.enabled else " (Disabled)"
-        messages.append(DiscoveryMessage(
-            topic=f"homeassistant/switch/{device.serial}/{x}/config",
-            payload={
+        messages.append(_config(
+            f"homeassistant/switch/{device.serial}/{x}/config",
+            {
                 **common,
                 "name": f"{zone.name} speakers{suffix}",
                 "command_topic": f"{base_topic}/{device.serial}/set_zone_state/{x}",
@@ -64,9 +62,9 @@ def build_device_discovery(base_topic: str, device: DiscoveryDevice) -> list[Dis
         ))
 
     for state in ("off", "on"):
-        messages.append(DiscoveryMessage(
-            topic=f"homeassistant/button/{device.serial}/all_zones_{state}/config",
-            payload={
+        messages.append(_config(
+            f"homeassistant/button/{device.serial}/all_zones_{state}/config",
+            {
                 **common,
                 "name": f"Turn all zones {state}",
                 "command_topic": f"{base_topic}/{device.serial}/set_zone_state",
@@ -77,9 +75,9 @@ def build_device_discovery(base_topic: str, device: DiscoveryDevice) -> list[Dis
         ))
 
     for key, name, icon in _SENSORS:
-        messages.append(DiscoveryMessage(
-            topic=f"homeassistant/sensor/{device.serial}/{key}/config",
-            payload={
+        messages.append(_config(
+            f"homeassistant/sensor/{device.serial}/{key}/config",
+            {
                 **common,
                 "name": name,
                 "state_topic": f"{base_topic}/{device.serial}/network_info/{key}",
@@ -88,6 +86,11 @@ def build_device_discovery(base_topic: str, device: DiscoveryDevice) -> list[Dis
             },
         ))
     return messages
+
+
+def _config(topic: str, payload: dict) -> PublishMessage:
+    """A retained discovery config message with a JSON-serialized payload."""
+    return PublishMessage(topic=topic, payload=json.dumps(payload), qos=1, retain=True)
 
 
 _SENSORS = (

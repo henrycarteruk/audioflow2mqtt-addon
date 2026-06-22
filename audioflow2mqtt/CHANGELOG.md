@@ -5,6 +5,14 @@ All notable changes to this add-on are documented here. The format is based on
 [Semantic Versioning](https://semver.org/) — the `version` in `config.yaml` is the
 release version Home Assistant uses to offer updates.
 
+## 0.8.3
+
+### Changed
+
+- The add-on now stays running and retries discovery in the background instead of
+  exiting when no devices are found at startup. A device that appears later — or a
+  configured IP address that becomes reachable — is picked up without a restart.
+
 ## 0.8.2
 
 ### Added

@@ -5,6 +5,7 @@ broker or device. The thin __main__ entrypoint builds the real dependencies.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 import httpx
@@ -71,13 +72,19 @@ class Orchestrator:
 
     async def rediscover(self) -> None:
         for ip in await self._discover():
-            device = await self._acquire(ip)
+            try:
+                device = await self._acquire(ip)
+            except httpx.HTTPError:
+                continue  # unreachable device — leave it for the next sweep
             serial = device.info.serial
             if serial in self._devices:
                 continue
             self._devices[serial] = device
+            logging.info("Found Audioflow %s (%s)", device.info.name, serial)
             await self._transport.subscribe([f"{self._config.base_topic}/{serial}/#"])
             await self._announce_device(serial, device)
+            await self.refresh_state(serial)
+            await self.refresh_network(serial)
 
     async def _acquire(self, ip: str) -> Device:
         client = AudioflowClient(ip, self._http)

@@ -192,6 +192,56 @@ def test_on_connect_subscribes_and_publishes_discovery():
     assert "homeassistant/switch/S/1/config" in topics                # HA discovery
 
 
+def test_rediscover_skips_unreachable_ip():
+    http = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(500)))
+    transport = FakeTransport()
+
+    async def discover():
+        return ["10.0.0.9"]
+
+    orch = Orchestrator(CONFIG, transport, {}, http=http, discover=discover)
+
+    async def go():
+        try:
+            await orch.rediscover()  # must not raise on an unreachable device
+        finally:
+            await http.aclose()
+
+    asyncio.run(go())
+    assert transport.published == []  # nothing announced for the unreachable IP
+
+
+def test_rediscover_publishes_initial_state_for_new_device():
+    def handler(request):
+        if request.url.path == "/switch":
+            return httpx.Response(200, json={
+                "serial": "S2", "model": "AF1", "name": "New", "version": "1.0",
+                "wifi": "Net [6] (-58 dBm)",
+            })
+        if request.url.path == "/zones":
+            return httpx.Response(200, json={"zones": [{"name": "Z", "state": "on", "enabled": 1}]})
+        return httpx.Response(200)
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    transport = FakeTransport()
+
+    async def discover():
+        return ["10.0.0.7"]
+
+    orch = Orchestrator(CONFIG, transport, {}, http=http, discover=discover)
+
+    async def go():
+        try:
+            await orch.rediscover()
+        finally:
+            await http.aclose()
+
+    asyncio.run(go())
+    published = [(m.topic, m.payload) for m in transport.published]
+    assert ("af/S2/zone_state/1", "on") in published        # refresh_state ran
+    assert ("af/S2/network_info/ssid", "Net") in published  # refresh_network ran
+
+
 def test_discover_command_acquires_new_device():
     def handler(request):
         if request.url.path == "/switch":

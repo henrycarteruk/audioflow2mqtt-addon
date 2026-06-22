@@ -14,32 +14,27 @@ import sys
 import httpx
 
 from .app import Device, Orchestrator
-from .config import Config, fetch_mqtt_service, load_options, resolve_config
-from .device import AudioflowClient
+from .config import fetch_mqtt_service, load_options, resolve_config
 from .discovery import discover_devices
 from .mqtt_transport import MqttTransport
 
 POLL_STATE_SECONDS = 10
 POLL_NETWORK_SECONDS = 60
+DISCOVERY_RETRY_SECONDS = 60
 
 
-async def _acquire_devices(config: Config, http: httpx.AsyncClient) -> dict[str, Device]:
-    ips = config.devices if config.devices else await discover_devices()
-    devices: dict[str, Device] = {}
-    for ip in ips:
-        client = AudioflowClient(ip, http)
-        info = await client.get_info()
-        zones = await client.get_zones()
-        devices[info.serial] = Device(client=client, info=info, zones=zones)
-        logging.info("Found Audioflow %s (%s) at %s", info.name, info.serial, ip)
-    return devices
-
-
-async def _poll(orchestrator: Orchestrator, devices, interval: int, refresh) -> None:
+async def _poll(devices, interval: int, refresh) -> None:
     while True:
         await asyncio.sleep(interval)
         for serial in list(devices):
             await refresh(serial)
+
+
+async def _retry_discovery(orchestrator: Orchestrator) -> None:
+    """Periodically pick up devices that appear after startup."""
+    while True:
+        await asyncio.sleep(DISCOVERY_RETRY_SECONDS)
+        await orchestrator.rediscover()
 
 
 async def run() -> None:
@@ -58,35 +53,39 @@ async def run() -> None:
             logging.error("No MQTT broker configured or discoverable; exiting.")
             sys.exit(1)
 
-        devices = await _acquire_devices(config, http)
-        if not devices:
-            logging.error("No Audioflow devices found; exiting.")
-            sys.exit(1)
+        async def device_source() -> list[str]:
+            # Explicit IPs if configured, otherwise UDP discovery. Used for the
+            # initial acquisition and every background retry, so configured IPs
+            # that are unreachable at startup are simply retried, not fatal.
+            return list(config.devices) if config.devices else await discover_devices()
 
+        devices: dict[str, Device] = {}
         transport = MqttTransport(config)
-        orchestrator = Orchestrator(
-            config, transport, devices, http=http, discover=discover_devices
-        )
+        orchestrator = Orchestrator(config, transport, devices, http=http, discover=device_source)
 
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, transport.stop)
 
         async def on_connect(_transport) -> None:
+            # Re-establish already-known devices, then acquire any new ones
+            # (on the first connect every device is "new").
             await orchestrator.on_connect()
             for serial in list(devices):
                 await orchestrator.refresh_state(serial)
                 await orchestrator.refresh_network(serial)
+            await orchestrator.rediscover()
 
-        pollers = [
-            asyncio.create_task(_poll(orchestrator, devices, POLL_STATE_SECONDS, orchestrator.refresh_state)),
-            asyncio.create_task(_poll(orchestrator, devices, POLL_NETWORK_SECONDS, orchestrator.refresh_network)),
+        tasks = [
+            asyncio.create_task(_poll(devices, POLL_STATE_SECONDS, orchestrator.refresh_state)),
+            asyncio.create_task(_poll(devices, POLL_NETWORK_SECONDS, orchestrator.refresh_network)),
+            asyncio.create_task(_retry_discovery(orchestrator)),
         ]
         try:
             await transport.run_forever(orchestrator.handle_message, on_connect=on_connect)
         finally:
-            for poller in pollers:
-                poller.cancel()
+            for task in tasks:
+                task.cancel()
 
 
 def main() -> None:

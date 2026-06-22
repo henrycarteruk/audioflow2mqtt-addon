@@ -5,6 +5,14 @@ All notable changes to this add-on are documented here. The format is based on
 [Semantic Versioning](https://semver.org/) — the `version` in `config.yaml` is the
 release version Home Assistant uses to offer updates.
 
+## 0.8.2
+
+### Added
+
+- A description for every configuration option, shown as help text in the add-on
+  configuration UI, including the QoS option.
+- In-add-on documentation, shown in the add-on's Documentation tab.
+
 ## 0.8.1
 
 ### Fixed

@@ -1,6 +1,6 @@
-# Audioflow to MQTT Gateway
+# Audioflow2MQTT
 
-This is the Home Assistant **add-on** version of [audioflow2mqtt](https://github.com/henrycarteruk/audioflow2mqtt). It enables local control of your Audioflow speaker switch(es) via MQTT and supports Home Assistant MQTT discovery for easy integration. It can automatically discover the Audioflow devices on your network via UDP discovery, or you can specify their IP addresses if you'd rather not use discovery.
+This is the Home Assistant **add-on** version of [Audioflow2MQTT](https://github.com/henrycarteruk/audioflow2mqtt). It enables local control of your Audioflow speaker switch(es) via MQTT and supports Home Assistant MQTT discovery for easy integration. It can automatically discover the Audioflow devices on your network via UDP discovery, or you can specify their IP addresses if you'd rather not use discovery.
 
 <br>
 

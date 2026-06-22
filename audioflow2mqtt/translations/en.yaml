@@ -1,15 +1,25 @@
 configuration:
   mqtt_host:
     name: MQTT host
+    description: IP address or hostname of the MQTT broker. Leave empty to use the broker provided by Home Assistant.
   mqtt_port:
     name: MQTT port
+    description: Port the MQTT broker listens on. Ignored when using the Home Assistant broker.
   mqtt_user:
     name: MQTT username
+    description: Username for the MQTT broker. Leave empty when using the Home Assistant broker.
   mqtt_pass:
     name: MQTT password
+    description: Password for the MQTT broker. Leave empty when using the Home Assistant broker.
+  qos:
+    name: MQTT QoS
+    description: MQTT quality of service level (0–2) for published messages.
   base_topic:
     name: MQTT base topic
+    description: Topic prefix used for all published and subscribed topics.
   devices:
-    name: Device IP addresses or hostnames
+    name: Device IP addresses
+    description: IP addresses of your Audioflow devices. Leave empty to discover them automatically on the local network.
   log_level:
     name: Log level
+    description: Minimum log level.

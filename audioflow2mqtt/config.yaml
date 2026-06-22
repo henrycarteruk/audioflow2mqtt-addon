@@ -1,16 +1,19 @@
-name: audioflow2mqtt
-description: Audioflow speaker switch to MQTT gateway
+name: Audioflow Speaker Selector
+description: Local control of Audioflow speaker switches over MQTT, with Home Assistant discovery.
 version: "0.8.1"
 slug: audioflow2mqtt
 init: false
+startup: application
+boot: auto
+stage: experimental
 arch:
-- amd64
-- aarch64
-- armv7
+  - amd64
+  - aarch64
+  - armv7
 discovery:
-- mqtt
+  - mqtt
 services:
-- mqtt:need
+  - mqtt:need
 hassio_api: true
 host_network: true
 url: https://github.com/henrycarteruk/audioflow2mqtt-addon
@@ -33,9 +36,5 @@ schema:
   qos: int(0,2)?
   base_topic: str
   devices:
-  - str?
-  - str?
-  - str?
-  - str?
-  - str?
+    - str?
   log_level: list(debug|info|warning|error)

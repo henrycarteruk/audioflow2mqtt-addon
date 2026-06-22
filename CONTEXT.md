@@ -1,4 +1,4 @@
-# audioflow2mqtt
+# Audioflow2MQTT
 
 A Home Assistant add-on that bridges Audioflow speaker switches to MQTT, exposing
 their zones and network info as Home Assistant entities via MQTT discovery.

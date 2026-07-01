@@ -30,13 +30,6 @@ async def _poll(devices, interval: int, refresh) -> None:
             await refresh(serial)
 
 
-async def _retry_discovery(orchestrator: Orchestrator) -> None:
-    """Periodically pick up devices that appear after startup."""
-    while True:
-        await asyncio.sleep(DISCOVERY_RETRY_SECONDS)
-        await orchestrator.rediscover()
-
-
 async def run() -> None:
     options = load_options()
     config = resolve_config(options, None)
@@ -67,6 +60,11 @@ async def run() -> None:
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, transport.stop)
 
+        async def _retry() -> None:
+            while True:
+                await asyncio.sleep(DISCOVERY_RETRY_SECONDS)
+                await orchestrator.rediscover()
+
         async def on_connect(_transport) -> None:
             # Re-establish already-known devices, then acquire any new ones
             # (on the first connect every device is "new").
@@ -79,7 +77,7 @@ async def run() -> None:
         tasks = [
             asyncio.create_task(_poll(devices, POLL_STATE_SECONDS, orchestrator.refresh_state)),
             asyncio.create_task(_poll(devices, POLL_NETWORK_SECONDS, orchestrator.refresh_network)),
-            asyncio.create_task(_retry_discovery(orchestrator)),
+            asyncio.create_task(_retry()),
         ]
         try:
             await transport.run_forever(orchestrator.handle_message, on_connect=on_connect)

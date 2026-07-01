@@ -35,14 +35,9 @@ class ApplyZoneEnable:
     name: str
 
 
-@dataclass(frozen=True)
-class TriggerDiscovery:
-    pass
-
-
 def plan_action(command, zones: list[Zone] | None):
     if isinstance(command, Discover):
-        return TriggerDiscovery()
+        return command
     if isinstance(command, SetZoneState):
         zone = _find(zones, command.zone)
         if zone is None or not zone.enabled:

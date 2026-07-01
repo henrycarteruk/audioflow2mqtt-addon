@@ -32,18 +32,18 @@ def test_discover_devices_over_loopback():
 def test_collects_responder_ip():
     proto = DiscoveryProtocol()
     proto.datagram_received(b"pong", ("10.0.0.5", 10499))
-    assert proto.discovered == ["10.0.0.5"]
+    assert proto.discovered == {"10.0.0.5"}
 
 
 def test_dedupes_repeat_responses():
     proto = DiscoveryProtocol()
     proto.datagram_received(b"pong", ("10.0.0.5", 10499))
     proto.datagram_received(b"pong again", ("10.0.0.5", 10499))
-    assert proto.discovered == ["10.0.0.5"]
+    assert proto.discovered == {"10.0.0.5"}
 
 
-def test_collects_multiple_distinct_responders_in_order():
+def test_collects_multiple_distinct_responders():
     proto = DiscoveryProtocol()
     proto.datagram_received(b"pong", ("10.0.0.5", 10499))
     proto.datagram_received(b"pong", ("10.0.0.9", 10499))
-    assert proto.discovered == ["10.0.0.5", "10.0.0.9"]
+    assert proto.discovered == {"10.0.0.5", "10.0.0.9"}

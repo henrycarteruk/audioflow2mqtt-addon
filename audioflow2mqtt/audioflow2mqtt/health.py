@@ -8,17 +8,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-OFFLINE_THRESHOLD = 3
-
-
 @dataclass(frozen=True)
 class DeviceHealth:
     failures: int = 0
     online: bool = True
 
-    def failed(self, threshold: int = OFFLINE_THRESHOLD) -> "DeviceHealth":
+    def failed(self, threshold: int = 3) -> "DeviceHealth":
         failures = self.failures + 1
         return DeviceHealth(failures=failures, online=failures < threshold)
 
     def succeeded(self) -> "DeviceHealth":
-        return DeviceHealth(failures=0, online=True)
+        return DeviceHealth()

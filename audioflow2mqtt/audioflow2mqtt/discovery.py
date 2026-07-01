@@ -15,12 +15,10 @@ DISCOVERY_PORT = 10499
 
 class DiscoveryProtocol(asyncio.DatagramProtocol):
     def __init__(self):
-        self.discovered: list[str] = []
+        self.discovered: set[str] = set()
 
     def datagram_received(self, data: bytes, addr) -> None:
-        ip = addr[0]
-        if ip not in self.discovered:
-            self.discovered.append(ip)
+        self.discovered.add(addr[0])
 
 
 async def discover_devices(

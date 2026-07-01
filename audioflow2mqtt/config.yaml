@@ -16,6 +16,9 @@ services:
   - mqtt:need
 hassio_api: true
 host_network: true
+ports:
+  8099/tcp: 8099
+watchdog: http://[HOST]:8099/health
 url: https://github.com/henrycarteruk/ha-audioflow2mqtt
 
 options:

@@ -54,6 +54,10 @@ class MqttTransport:
             await self._client.__aexit__(None, None, None)
             self._client = None
 
+    @property
+    def connected(self) -> bool:
+        return self._client is not None
+
     def stop(self) -> None:
         self._stop = True
 

@@ -8,81 +8,65 @@ seam as the same type as any other publish. No I/O.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 
+from .device import DeviceInfo, Zone
 from .mqtt import PublishMessage
 
 
-@dataclass(frozen=True)
-class DiscoveryZone:
-    number: int
-    name: str
-    enabled: bool
-
-
-@dataclass(frozen=True)
-class DiscoveryDevice:
-    serial: str
-    name: str
-    model: str
-    fw_version: str
-    zones: list[DiscoveryZone]
-
-
-def build_device_discovery(base_topic: str, device: DiscoveryDevice) -> list[PublishMessage]:
+def build_device_discovery(base_topic: str, info: DeviceInfo, zones: list[Zone]) -> list[PublishMessage]:
     common = {
         "availability": [
             {"topic": f"{base_topic}/status"},
-            {"topic": f"{base_topic}/{device.serial}/status"},
+            {"topic": f"{base_topic}/{info.serial}/status"},
         ],
         "device": {
-            "name": device.name,
-            "identifiers": device.serial,
+            "name": info.name,
+            "identifiers": info.serial,
             "manufacturer": "Audioflow",
-            "model": device.model,
-            "sw_version": device.fw_version,
+            "model": info.model,
+            "sw_version": info.fw_version,
         },
         "platform": "mqtt",
     }
     messages: list[PublishMessage] = []
-    for zone in device.zones:
+    for zone in zones:
         x = zone.number
         suffix = "" if zone.enabled else " (Disabled)"
         messages.append(_config(
-            f"homeassistant/switch/{device.serial}/{x}/config",
+            f"homeassistant/switch/{info.serial}/{x}/config",
             {
                 **common,
                 "name": f"{zone.name} speakers{suffix}",
-                "command_topic": f"{base_topic}/{device.serial}/set_zone_state/{x}",
-                "state_topic": f"{base_topic}/{device.serial}/zone_state/{x}",
+                "command_topic": f"{base_topic}/{info.serial}/set_zone_state/{x}",
+                "state_topic": f"{base_topic}/{info.serial}/zone_state/{x}",
                 "payload_on": "on",
                 "payload_off": "off",
-                "unique_id": f"{device.serial}{x}",
+                "unique_id": f"{info.serial}{x}",
             },
         ))
 
     for state in ("off", "on"):
         messages.append(_config(
-            f"homeassistant/button/{device.serial}/all_zones_{state}/config",
+            f"homeassistant/button/{info.serial}/all_zones_{state}/config",
             {
                 **common,
                 "name": f"Turn all zones {state}",
-                "command_topic": f"{base_topic}/{device.serial}/set_zone_state",
+                "command_topic": f"{base_topic}/{info.serial}/set_zone_state",
                 "payload_press": state,
-                "unique_id": f"{device.serial}_all_zones_{state}",
+                "unique_id": f"{info.serial}_all_zones_{state}",
                 "icon": f"mdi:power-{state}",
             },
         ))
 
     for key, name, icon in _SENSORS:
         messages.append(_config(
-            f"homeassistant/sensor/{device.serial}/{key}/config",
+            f"homeassistant/sensor/{info.serial}/{key}/config",
             {
                 **common,
                 "name": name,
-                "state_topic": f"{base_topic}/{device.serial}/network_info/{key}",
+                "state_topic": f"{base_topic}/{info.serial}/network_info/{key}",
                 "icon": icon,
-                "unique_id": f"{device.serial}{key}",
+                "unique_id": f"{info.serial}{key}",
             },
         ))
     return messages

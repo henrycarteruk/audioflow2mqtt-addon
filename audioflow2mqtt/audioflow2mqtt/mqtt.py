@@ -40,16 +40,12 @@ def network_messages(base_topic: str, serial: str, wifi: WifiInfo, qos: int) -> 
     ]
 
 
-def _status_message(topic: str, online: bool) -> PublishMessage:
-    return PublishMessage(topic, "online" if online else "offline", qos=1, retain=True)
-
-
 def device_status_message(base_topic: str, serial: str, online: bool) -> PublishMessage:
-    return _status_message(f"{base_topic}/{serial}/status", online)
+    return PublishMessage(f"{base_topic}/{serial}/status", "online" if online else "offline", qos=1, retain=True)
 
 
 def gateway_status_message(base_topic: str, online: bool) -> PublishMessage:
-    return _status_message(f"{base_topic}/status", online)
+    return PublishMessage(f"{base_topic}/status", "online" if online else "offline", qos=1, retain=True)
 
 
 def subscribe_topics(base_topic: str, serials: list[str]) -> list[str]:

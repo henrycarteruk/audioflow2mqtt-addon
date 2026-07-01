@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from .commands import parse_command
+from .commands import parse_command, Discover
 from .config import Config
 from .device import AudioflowClient, DeviceInfo, Zone
 from .dispatch import (
@@ -18,9 +18,8 @@ from .dispatch import (
     ApplyZoneState,
     ApplyAllZones,
     ApplyZoneEnable,
-    TriggerDiscovery,
 )
-from .ha_discovery import build_device_discovery, DiscoveryDevice, DiscoveryZone
+from .ha_discovery import build_device_discovery
 from .health import DeviceHealth
 from .mqtt import (
     zone_messages,
@@ -40,16 +39,6 @@ class Device:
     health: DeviceHealth = field(default_factory=DeviceHealth)
 
 
-def _discovery_device(device: "Device") -> DiscoveryDevice:
-    return DiscoveryDevice(
-        serial=device.info.serial,
-        name=device.info.name,
-        model=device.info.model,
-        fw_version=device.info.fw_version,
-        zones=[DiscoveryZone(number=z.number, name=z.name, enabled=z.enabled) for z in device.zones],
-    )
-
-
 class Orchestrator:
     def __init__(self, config: Config, transport, devices: dict[str, Device], *, http=None, discover=None):
         self._config = config
@@ -66,7 +55,7 @@ class Orchestrator:
             await self._announce_device(serial, device)
 
     async def _announce_device(self, serial: str, device: Device) -> None:
-        for message in build_device_discovery(self._config.base_topic, _discovery_device(device)):
+        for message in build_device_discovery(self._config.base_topic, device.info, device.zones):
             await self._transport.publish(message)
         await self._transport.publish(device_status_message(self._config.base_topic, serial, True))
 
@@ -99,7 +88,7 @@ class Orchestrator:
         action = plan_action(command, self._zones_for(command))
         if action is None:
             return
-        if isinstance(action, TriggerDiscovery):
+        if isinstance(action, Discover):
             await self.rediscover()
             return
         await self.execute(action)

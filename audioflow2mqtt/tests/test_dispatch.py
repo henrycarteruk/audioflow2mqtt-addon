@@ -5,7 +5,6 @@ from audioflow2mqtt.dispatch import (
     ApplyZoneState,
     ApplyAllZones,
     ApplyZoneEnable,
-    TriggerDiscovery,
 )
 
 
@@ -46,8 +45,8 @@ def test_set_zone_enable_echoes_current_name():
     )
 
 
-def test_discover_plans_trigger_discovery():
-    assert plan_action(Discover(), None) == TriggerDiscovery()
+def test_discover_returns_discover():
+    assert plan_action(Discover(), None) == Discover()
 
 
 def test_explicit_on_plans_apply_zone_state():

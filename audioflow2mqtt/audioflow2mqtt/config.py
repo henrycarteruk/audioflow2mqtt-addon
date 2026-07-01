@@ -46,21 +46,14 @@ async def fetch_mqtt_service(http: httpx.AsyncClient, token: str | None) -> dict
     return resp.json().get("data")
 
 
-def _pick(*candidates):
-    """Return the first explicitly-set value (non-None, non-empty-string)."""
-    for value in candidates:
-        if value is not None and value != "":
-            return value
-    return None
-
-
 def resolve_config(options: dict, mqtt_service: dict | None = None) -> Config:
     service = mqtt_service or {}
+    pick = lambda *c: next((v for v in c if v is not None and v != ""), None)
     return Config(
-        mqtt_host=_pick(options.get("mqtt_host"), service.get("host")),
-        mqtt_port=_pick(options.get("mqtt_port"), service.get("port"), 1883),
-        mqtt_user=_pick(options.get("mqtt_user"), service.get("username")),
-        mqtt_pass=_pick(options.get("mqtt_pass"), service.get("password")),
+        mqtt_host=pick(options.get("mqtt_host"), service.get("host")),
+        mqtt_port=pick(options.get("mqtt_port"), service.get("port"), 1883),
+        mqtt_user=pick(options.get("mqtt_user"), service.get("username")),
+        mqtt_pass=pick(options.get("mqtt_pass"), service.get("password")),
         qos=options.get("qos") if options.get("qos") is not None else 1,
         base_topic=options.get("base_topic") or "audioflow2mqtt",
         devices=_clean_devices(options.get("devices")),

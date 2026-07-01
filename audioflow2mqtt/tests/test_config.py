@@ -104,11 +104,6 @@ def test_no_host_anywhere_resolves_to_none():
     assert resolve_config({"mqtt_host": ""}, mqtt_service={}).mqtt_host is None
 
 
-def test_home_assistant_is_always_on():
-    # Dropped as a configurable option; explicit false in options is ignored.
-    assert resolve_config({}).home_assistant is True
-    assert resolve_config({"home_assistant": False}).home_assistant is True
-
 
 def test_explicit_broker_options_map_into_config():
     cfg = resolve_config(

@@ -22,7 +22,6 @@ class Config:
     base_topic: str
     devices: list[str] | None
     log_level: str
-    home_assistant: bool = True
 
 
 def load_options(path: str = "/data/options.json") -> dict:

@@ -21,4 +21,4 @@ class DeviceHealth:
         return DeviceHealth(failures=failures, online=failures < threshold)
 
     def succeeded(self) -> "DeviceHealth":
-        return DeviceHealth(failures=0, online=True)
+        return DeviceHealth()

@@ -138,6 +138,16 @@ def test_reconnect_retries_on_mqtt_error():
     assert clients == []                   # both the failing and the good client were used
 
 
+def test_connected_reflects_client_state():
+    client = FakeClient()
+    transport = MqttTransport(CONFIG, client_factory=lambda **k: client)
+    assert transport.connected is False
+    asyncio.run(transport.connect())
+    assert transport.connected is True
+    asyncio.run(transport.disconnect())
+    assert transport.connected is False
+
+
 def test_connect_builds_client_with_conn_params_and_will():
     captured = {}
     client = FakeClient()

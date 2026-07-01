@@ -21,6 +21,18 @@ from .mqtt_transport import MqttTransport
 POLL_STATE_SECONDS = 10
 POLL_NETWORK_SECONDS = 60
 DISCOVERY_RETRY_SECONDS = 60
+HEALTH_PORT = 8099
+
+
+async def _health_server(transport: MqttTransport) -> None:
+    async def handle(reader, writer):
+        await reader.read(1024)
+        writer.write(b"HTTP/1.1 200 OK\r\n\r\n" if transport.connected else b"HTTP/1.1 503 Service Unavailable\r\n\r\n")
+        await writer.drain()
+        writer.close()
+    server = await asyncio.start_server(handle, "0.0.0.0", HEALTH_PORT)
+    async with server:
+        await server.serve_forever()
 
 
 async def _poll(devices, interval: int, refresh) -> None:
@@ -78,6 +90,7 @@ async def run() -> None:
             asyncio.create_task(_poll(devices, POLL_STATE_SECONDS, orchestrator.refresh_state)),
             asyncio.create_task(_poll(devices, POLL_NETWORK_SECONDS, orchestrator.refresh_network)),
             asyncio.create_task(_retry()),
+            asyncio.create_task(_health_server(transport)),
         ]
         try:
             await transport.run_forever(orchestrator.handle_message, on_connect=on_connect)
